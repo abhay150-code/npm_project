@@ -14,14 +14,30 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ─── Middleware ──────────────────────────────────────────
-// 1. Parse incoming JSON request bodies
+// 1. CORS headers (enables frontend-backend connectivity across any domain)
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Request-Id');
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
+
+// 2. Parse incoming JSON request bodies
 app.use(express.json());
 
-// 2. Attach a unique request ID to every request
+// 3. Attach a unique request ID to every request via express-error-kit
 app.use(requestId);
 
-// 3. Serve interactive web dashboard from public directory
+// 4. Serve interactive web frontend from public directory
 app.use(express.static(path.join(__dirname, '../public')));
+
+// ─── Explicit Frontend Route ─────────────────────────────
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/index.html'));
+});
 
 // ─── Health Check Endpoint ──────────────────────────────
 app.get('/health', (req, res) => {
@@ -34,7 +50,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// ─── Routes ─────────────────────────────────────────────
+// ─── API Routes ─────────────────────────────────────────
 app.use('/students', studentRoutes);
 
 // ─── 404 Fallback for Unknown Routes ────────────────────
@@ -45,7 +61,7 @@ app.use((req, res, next) => {
 // ─── Global Error Handler (from express-error-kit) ──────
 app.use(errorHandler);
 
-// ─── Start Server ───────────────────────────────────────
+// ─── Start Server (Local / Standalone) ───────────────────
 if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`Student Management Portal running on http://localhost:${PORT}`);
